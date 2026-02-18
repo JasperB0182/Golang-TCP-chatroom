@@ -1,20 +1,28 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"net"
 )
 
-// TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
+	const address = ":8090"
+	const networkProtocol = "tcp"
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
+	l, err := net.Listen(networkProtocol, address)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("Listening on ", l.Addr())
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			log.Printf("Error: %s while connecting to addr: %s\n",
+				err.Error(), conn.RemoteAddr())
+		} else {
+			log.Printf("Connected successfully to remote addr: %s\n",
+				conn.RemoteAddr())
+		}
 	}
 }
