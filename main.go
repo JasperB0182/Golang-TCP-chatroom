@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"log"
 	"net"
+	"os"
 )
 
 func main() {
@@ -24,5 +27,32 @@ func main() {
 			log.Printf("Connected successfully to remote addr: %s\n",
 				conn.RemoteAddr())
 		}
+
+		go HandleOutgoing(conn)
+
 	}
+
+}
+
+func HandleOutgoing(conn net.Conn) {
+	defer conn.Close()
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		line, err := reader.ReadString('\n')
+
+		if err != nil {
+			fmt.Println("Could not send message")
+		}
+
+		buffer := []byte(line)
+
+		_, err = conn.Write(buffer)
+
+		if err != nil {
+			fmt.Println("Error writing to client")
+		}
+
+		fmt.Printf("[Server]: %s", line)
+	}
+
 }
