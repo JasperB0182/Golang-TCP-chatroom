@@ -11,6 +11,7 @@ import (
 func main() {
 	const address = ":8090"
 	const networkProtocol = "tcp"
+	// This is legacy code since I have decided to switch to websockets for this project.
 
 	l, err := net.Listen(networkProtocol, address)
 	if err != nil {
