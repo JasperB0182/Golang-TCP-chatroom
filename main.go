@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -22,23 +24,35 @@ func main() {
 }
 
 func (wsh webSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c, err := wsh.upgrader.Upgrade(w, r, nil)
+	conn, err := wsh.upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	defer c.Close()
 
+	go HandleIncomingMessages(conn)
+
+	go HandleOutgoingMessages(conn)
+
+}
+
+func HandleIncomingMessages(conn *websocket.Conn) {
 	for {
-		messageType, p, err := c.ReadMessage()
+		_, p, err := conn.ReadMessage()
 		if err != nil {
-			log.Fatal(err)
+			continue
 		}
 
-		if err := c.WriteMessage(messageType, p); err != nil {
-			log.Fatal(err)
-			return
+		fmt.Printf(string(p))
+	}
+}
+
+func HandleOutgoingMessages(conn *websocket.Conn) {
+	for {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("[server]: Testing connection!")); err != nil {
+			continue
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
