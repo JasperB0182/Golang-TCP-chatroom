@@ -1,81 +1,44 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"net"
-	"os"
+	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
+type webSocketHandler struct {
+	upgrader websocket.Upgrader
+}
+
 func main() {
-	const address = ":8090"
-	const networkProtocol = "tcp"
+	webSocketHandler := webSocketHandler{
+		upgrader: websocket.Upgrader{},
+	}
+	http.Handle("/", webSocketHandler)
+	log.Print("Starting server...")
+	log.Fatal(http.ListenAndServe("localhost:8080", nil))
 
-	l, err := net.Listen(networkProtocol, address)
+}
+
+func (wsh webSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	c, err := wsh.upgrader.Upgrade(w, r, nil)
+
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
+		return
 	}
-	log.Println("Listening on ", l.Addr())
+	defer c.Close()
 
 	for {
-		conn, err := l.Accept()
+		messageType, p, err := c.ReadMessage()
 		if err != nil {
-			log.Printf("Error: %s while connecting to addr: %s\n",
-				err.Error(), conn.RemoteAddr())
-		} else {
-			log.Printf("Connected successfully to remote addr: %s\n",
-				conn.RemoteAddr())
+			log.Fatal(err)
 		}
 
-		go HandleOutgoing(conn)
-
-		go HandleIncoming(conn)
-
-	}
-
-}
-
-func HandleOutgoing(conn net.Conn) {
-	defer conn.Close()
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		line, err := reader.ReadString('\n')
-
-		if err != nil {
-			fmt.Println("Could not send message")
+		if err := c.WriteMessage(messageType, p); err != nil {
+			log.Fatal(err)
 			return
 		}
-
-		newContext := fmt.Sprintf("[Server]: %s", line)
-
-		buffer := []byte(newContext)
-
-		_, err = conn.Write(buffer)
-
-		if err != nil {
-			fmt.Println("Error writing to client")
-			return
-		}
-
-		fmt.Printf("[Server]: %s", line)
-	}
-
-}
-
-func HandleIncoming(conn net.Conn) {
-	defer conn.Close()
-	for {
-		buf := make([]byte, 64)
-
-		n, err := conn.Read(buf)
-
-		if err != nil {
-			//TODO: Connection shuts down ungracefully
-			log.Fatal("Connection closed.")
-			return
-		}
-
-		fmt.Printf("[Client]: %s", string(buf[:n]))
 	}
 }
